@@ -27,7 +27,11 @@ export class CreateMaintenanceDto {
   @Min(0)
   mileage: number;
 
-  @ApiProperty({ type: String, format: 'date-time', example: '2026-11-03T12:30:00Z' })
+  @ApiProperty({
+    type: String,
+    format: 'date-time',
+    example: '2026-11-03T12:30:00Z',
+  })
   @Type(() => Date)
   @IsDate()
   scheduledAt: Date;

@@ -6,7 +6,14 @@ import {
   HttpStatus,
   Post,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiConflictResponse,
+  ApiOperation,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
 import { AuthService } from './auth.service.js';
 import { Public } from '../common/decorators/public.decorator.js';
 import { LoginDto, RegisterDto } from './dto/auth.dto.js';
@@ -18,12 +25,20 @@ import type { JwtPayload } from '../common/interface/jwt-payload.interface.js';
 export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
+  @ApiOperation({ summary: 'Register a user (ADMIN or TECHNICIAN)' })
+  @ApiBadRequestResponse({ description: 'Invalid data' })
+  @ApiConflictResponse({ description: 'Email already registered' })
   @Public()
   @Post('register')
   register(@Body() dto: RegisterDto) {
     return this.auth.register(dto); // 201 for default
   }
 
+  @ApiOperation({
+    summary: 'Log in and get a JWT',
+    description: 'Copy `accessToken` and paste it in the Authorize button.',
+  })
+  @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
@@ -31,7 +46,9 @@ export class AuthController {
     return this.auth.login(dto);
   }
 
+  @ApiOperation({ summary: 'Data of the authenticated user (from the token)' })
   @ApiBearerAuth()
+  @ApiUnauthorizedResponse({ description: 'Missing, invalid or expired token' })
   @Get('me')
   me(@CurrentUser() user: JwtPayload) {
     return user;

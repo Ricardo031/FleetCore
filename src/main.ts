@@ -20,12 +20,18 @@ async function bootstrap() {
 
   const swagger = new DocumentBuilder()
     .setTitle('FleetCore API')
-    .setDescription('Gestión de mantenimiento de flota')
+    .setDescription(
+      'Gestión de mantenimiento de flota.\n\n' +
+        '**JWT:** `POST /auth/login` → copia `accessToken` → botón **Authorize** → `bearer`.\n\n' +
+        '**API Key:** solo para `/integrations`, en **Authorize** → `x-api-key`.',
+    )
     .setVersion('1.0')
     .addBearerAuth()
     .addApiKey({ type: 'apiKey', name: 'x-api-key', in: 'header' }, 'x-api-key')
     .build();
-  SwaggerModule.setup('docs', app, SwaggerModule.createDocument(app, swagger));
+  SwaggerModule.setup('docs', app, SwaggerModule.createDocument(app, swagger), {
+    swaggerOptions: { persistAuthorization: true }, // keeps the token after reloading /docs
+  });
 
   await app.listen(process.env.PORT ?? 3000);
 }

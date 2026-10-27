@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -10,13 +11,20 @@ import { Vehicle } from '../vehicles/entities/vehicle.entity.js';
 import { Mechanic } from '../mechanics/entities/mechanics.entity.js';
 import { Workshop } from '../workshops/entities/workshops.entity.js';
 import { CreateMaintenanceDto } from './dto/create-maintenance.dto.js';
-import { computeEndDate } from './maintenance-rules.js';
+import {
+  assertClosingData,
+  assertTransition,
+  computeEndDate,
+} from './maintenance-rules.js';
 import { VehicleStatus } from '../common/enums/vehicle-status.enums.js';
 import { EntityStatus } from '../common/enums/entity-status.enum.js';
 import {
   ACTIVE_MAINTENANCE_STATUSES,
   MaintenanceStatus,
 } from '../common/enums/maintenance-status.enum.js';
+import { UpdateMaintenanceStatusDto } from './dto/update-maintenance-status.dto.js';
+import { JwtPayload } from '../common/interface/jwt-payload.interface.js';
+import { Role } from '../common/enums/role.enums.js';
 
 @Injectable()
 export class MaintenancesService {
@@ -96,6 +104,65 @@ export class MaintenancesService {
           workshop,
         }),
       );
+    });
+  }
+
+  async updateStatus(
+    id: number,
+    dto: UpdateMaintenanceStatusDto,
+    user: JwtPayload,
+  ) {
+    return this.dataSource.transaction(async (manager) => {
+      const maintenance = await manager.findOne(Maintenance, {
+        where: { id },
+        relations: { vehicle: true, mechanic: { user: true }, workshop: true },
+      });
+      if (!maintenance)
+        throw new NotFoundException(`Maintenance ${id} not found`);
+
+      // Un TECHNICIAN solo toca lo suyo y no puede cancelar
+      if (user.role === Role.TECHNICIAN) {
+        if (maintenance.mechanic.user?.id !== user.sub)
+          throw new ForbiddenException('Maintenance not assigned to you');
+        if (dto.status === MaintenanceStatus.CANCELLED)
+          throw new ForbiddenException(
+            'Only admin can cancel maintenance status',
+          );
+      }
+
+      assertTransition(maintenance.status, dto.status); // 409 si es inválida
+      const vehicle = maintenance.vehicle;
+
+      switch (dto.status) {
+        case MaintenanceStatus.IN_PROGRESS:
+          if (vehicle.status === VehicleStatus.INACTIVE)
+            throw new ConflictException(`Vehicle ${vehicle.plate} is inactive`);
+          vehicle.status = VehicleStatus.IN_MAINTENANCE; // regla automática
+          break;
+
+        case MaintenanceStatus.COMPLETED:
+          assertClosingData(dto); // 400 si faltan datos
+          if (dto.finalMileage! < vehicle.mileage)
+            throw new BadRequestException(
+              `Final mileage (${dto.finalMileage}) cannot be lower than the vehicle's current mileage (${vehicle.mileage})`,
+            );
+          maintenance.workDone = dto.workDone!;
+          maintenance.finalCost = dto.finalCost!;
+          maintenance.finishedAt = dto.finishedAt!;
+          maintenance.finalMileage = dto.finalMileage!;
+          vehicle.status = VehicleStatus.AVAILABLE; // regla automática
+          vehicle.mileage = dto.finalMileage!;
+          break;
+
+        case MaintenanceStatus.CANCELLED:
+          if (maintenance.status === MaintenanceStatus.IN_PROGRESS)
+            vehicle.status = VehicleStatus.AVAILABLE; // no dejarlo "en taller" para siempre
+          break;
+      }
+
+      maintenance.status = dto.status;
+      await manager.save([vehicle, maintenance]);
+      return maintenance;
     });
   }
 }
