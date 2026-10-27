@@ -1,0 +1,57 @@
+services:
+  # ---------- Base de datos ----------
+  db:
+    image: postgres:16-alpine
+    container_name: fleetcore-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: fleetcore
+    # Puerto del host configurable (por defecto 5440) para no chocar con el
+    # PostgreSQL local (5432) ni con otros contenedores. Útil para conectarse
+    # con pgAdmin desde fuera del contenedor.
+    ports:
+      - '${DB_HOST_PORT:-5440}:5432'
+    volumes:
+      - fleetcore_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d fleetcore']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - fleetcore-net
+
+  # ---------- API NestJS ----------
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fleetcore-api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: 3000
+      # Dentro de la red interna el host de la BD es el nombre del servicio: "db"
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: fleetcore
+      JWT_SECRET: cambia-este-secreto
+      JWT_EXPIRES_IN: 1h
+      API_KEYS: demo-key-partner-1,demo-key-partner-2
+    ports:
+      - '${API_HOST_PORT:-3010}:3000'
+    networks:
+      - fleetcore-net
+
+volumes:
+  fleetcore_pgdata:
+
+networks:
+  fleetcore-net:
+    driver: bridge

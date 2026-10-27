@@ -1,0 +1,19 @@
+node_modules
+dist
+build
+coverage
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+*.log
+*.tsbuildinfo
+.vscode
+.idea
+README.md
+guia.md
+enunciado-prueba-Desempeno-M6_2-Nest Js.md
+Dockerfile
+docker-compose.yml
+.dockerignore

@@ -4,6 +4,15 @@ import { AppService } from './app.service.js';
 import { validateEnv } from './config/env.validation.js';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { UsersModule } from './users/users.module.js';
+import { AuthModule } from './auth/auth.module.js';
+import { APP_GUARD } from '@nestjs/core';
+import { JwtAuthGuard } from './common/guards/jwtAuth.guard.js';
+import { RolesGuard } from './common/guards/roles.guard.js';
+import { VehiclesModule } from './vehicles/vehicles.module.js';
+import { MechanicsModule } from './mechanics/mechanics.module.js';
+import { WorkshopsModule } from './workshops/workshops.module.js';
+import { MaintenancesModule } from './maintenances/maintenances.module.js';
 
 @Module({
   imports: [
@@ -21,8 +30,18 @@ import { TypeOrmModule } from '@nestjs/typeorm';
         synchronize: true, // this only for development; in Production: migration
       }),
     }),
+    AuthModule,
+    UsersModule,
+    VehiclesModule,
+    MechanicsModule,
+    WorkshopsModule,
+    MaintenancesModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: RolesGuard },
+  ],
 })
 export class AppModule {}
