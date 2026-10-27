@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+// GUARD: validates the x-api-key header against API_KEYS (an environment variable, with keys separated by commas)
 @Injectable()
 export class ApiKeyGuard implements CanActivate {
   private readonly validKeys: string[];

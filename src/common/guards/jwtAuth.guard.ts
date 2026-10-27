@@ -8,7 +8,9 @@ import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { Observable } from 'rxjs';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator.js';
-import { JwtPayload } from '../interface/  jwt-payload.interface.js';
+import { JwtPayload } from '../interface/jwt-payload.interface.js';
+
+//Validates the JWT on all routes except those marked with @Public()
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -25,7 +27,7 @@ export class JwtAuthGuard implements CanActivate {
     if (isPublic) return true;
 
     const req = ctx.switchToHttp().getRequest();
-    const [type, token] = req.headers.authorization.split(' ') ?? [];
+    const [type, token] = req.headers.authorization?.split(' ') ?? [];
 
     if (type !== 'Bearer' || !token)
       throw new UnauthorizedException('Token not provided');

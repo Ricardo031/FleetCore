@@ -9,6 +9,8 @@ import {
 import type { Request, Response } from 'express';
 import { QueryFailedError } from 'typeorm';
 
+//INTERCEPTOR: wraps every successful response in { success, statusCode, data, timeStamp }
+
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger(AllExceptionsFilter.name);

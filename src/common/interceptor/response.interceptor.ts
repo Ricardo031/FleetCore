@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { map } from 'rxjs';
 
+//INTERCEPTOR: wraps every successful response in { success, statusCode, data, timeStamp }
 @Injectable()
 export class ResponseInterceptor implements NestInterceptor {
   intercept(ctx: ExecutionContext, next: CallHandler) {
