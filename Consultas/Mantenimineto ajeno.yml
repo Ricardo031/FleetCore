@@ -1,0 +1,16 @@
+info:
+  name: Mantenimineto ajeno
+  type: http
+
+http:
+  method: GET
+  url: http://localhost:3020/maintenances/2
+  auth:
+    type: bearer
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjMsImVtYWlsIjoidGVjaDFAZmxlZXRjb3JlLmNvbSIsInJvbGUiOiJURUNITklDSUFOIiwiaWF0IjoxNzkzMTE5NTc3LCJleHAiOjE3OTMxMjMxNzd9.PQVfdOJFNyg8Zc9dE8t4L205pKVP7c5r3pxWO-LmlRY
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

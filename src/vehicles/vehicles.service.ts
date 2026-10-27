@@ -11,7 +11,10 @@ import { Maintenance } from '../maintenances/entities/maintenaces.entity.js';
 import { CreateVehicleDto } from './dto/create-vehicle.dto.js';
 import { UpdateVehicleDto } from './dto/update-vehicle.dto.js';
 import { VehicleStatus } from '../common/enums/vehicle-status.enums.js';
-import { ACTIVE_MAINTENANCE_STATUSES } from '../common/enums/maintenance-status.enum.js';
+import {
+  ACTIVE_MAINTENANCE_STATUSES,
+  MaintenanceStatus,
+} from '../common/enums/maintenance-status.enum.js';
 
 @Injectable()
 export class VehiclesService {
@@ -42,6 +45,17 @@ export class VehiclesService {
     if (!vehicle)
       throw new NotFoundException(`Vehicle with plate ${normalized} not found`);
     return vehicle;
+  }
+
+  // History = completed maintenances, newest first, with who did them and where
+  async findHistory(id: number) {
+    const vehicle = await this.findOne(id);
+    const maintenances = await this.maintenances.find({
+      where: { vehicle: { id }, status: MaintenanceStatus.COMPLETED },
+      relations: { mechanic: true, workshop: true },
+      order: { finishedAt: 'DESC' },
+    });
+    return { vehicle, maintenances };
   }
 
   async update(id: number, dto: UpdateVehicleDto) {

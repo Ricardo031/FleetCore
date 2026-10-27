@@ -4,19 +4,21 @@ import { MaintenanceStatus } from '../common/enums/maintenance-status.enum.js';
 // Pure business rules (no DB access) so they are easy to unit test
 
 // STATE MACHINE: which statuses each status can move to
-export const ALLOWED_TRANSITIONS: Record<MaintenanceStatus, MaintenanceStatus[]> =
-  {
-    [MaintenanceStatus.SCHEDULED]: [
-      MaintenanceStatus.IN_PROGRESS,
-      MaintenanceStatus.CANCELLED,
-    ],
-    [MaintenanceStatus.IN_PROGRESS]: [
-      MaintenanceStatus.COMPLETED,
-      MaintenanceStatus.CANCELLED,
-    ],
-    [MaintenanceStatus.COMPLETED]: [], // final status
-    [MaintenanceStatus.CANCELLED]: [], // final status
-  };
+export const ALLOWED_TRANSITIONS: Record<
+  MaintenanceStatus,
+  MaintenanceStatus[]
+> = {
+  [MaintenanceStatus.SCHEDULED]: [
+    MaintenanceStatus.IN_PROGRESS,
+    MaintenanceStatus.CANCELLED,
+  ],
+  [MaintenanceStatus.IN_PROGRESS]: [
+    MaintenanceStatus.COMPLETED,
+    MaintenanceStatus.CANCELLED,
+  ],
+  [MaintenanceStatus.COMPLETED]: [], // final status
+  [MaintenanceStatus.CANCELLED]: [], // final status
+};
 
 export function assertTransition(
   from: MaintenanceStatus,

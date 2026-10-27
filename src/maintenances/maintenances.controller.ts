@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   Param,
   ParseIntPipe,
   Patch,
@@ -47,6 +48,62 @@ export class MaintenancesController {
   @Post()
   create(@Body() dto: CreateMaintenanceDto) {
     return this.maintenances.create(dto);
+  }
+
+  @ApiOperation({ summary: 'List all maintenances (ADMIN)' })
+  @Roles(Role.ADMIN)
+  @Get()
+  findAll() {
+    return this.maintenances.findAll();
+  }
+
+  // Fixed routes go before ':id' so "active" or "my" are not parsed as an id
+  @ApiOperation({
+    summary: 'List active maintenances: SCHEDULED or IN_PROGRESS (ADMIN)',
+  })
+  @Roles(Role.ADMIN)
+  @Get('active')
+  findActive() {
+    return this.maintenances.findActive();
+  }
+
+  @ApiOperation({
+    summary: 'My assigned maintenances, with their workshop (TECHNICIAN)',
+  })
+  @ApiNotFoundResponse({ description: 'User not linked to any mechanic' })
+  @Roles(Role.TECHNICIAN)
+  @Get('my')
+  findMine(@CurrentUser() user: JwtPayload) {
+    return this.maintenances.findMine(user);
+  }
+
+  @ApiOperation({ summary: 'Maintenances of a vehicle (ADMIN)' })
+  @ApiNotFoundResponse({ description: 'Vehicle not found' })
+  @Roles(Role.ADMIN)
+  @Get('vehicle/:vehicleId')
+  findByVehicle(@Param('vehicleId', ParseIntPipe) vehicleId: number) {
+    return this.maintenances.findByVehicle(vehicleId);
+  }
+
+  @ApiOperation({ summary: 'Maintenances assigned to a mechanic (ADMIN)' })
+  @ApiNotFoundResponse({ description: 'Mechanic not found' })
+  @Roles(Role.ADMIN)
+  @Get('mechanic/:mechanicId')
+  findByMechanic(@Param('mechanicId', ParseIntPipe) mechanicId: number) {
+    return this.maintenances.findByMechanic(mechanicId);
+  }
+
+  @ApiOperation({
+    summary: 'Find a maintenance by id (ADMIN, or TECHNICIAN if assigned)',
+  })
+  @ApiNotFoundResponse({ description: 'Maintenance not found' })
+  @Roles(Role.ADMIN, Role.TECHNICIAN)
+  @Get(':id')
+  findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.maintenances.findOne(id, user);
   }
 
   @ApiOperation({

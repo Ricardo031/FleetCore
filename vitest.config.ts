@@ -8,6 +8,18 @@ export default defineConfig({
   test: {
     globals: true,
     root: './',
-    include: ['**/*.spec.ts'],
+    include: ['src/**/*.spec.ts'],
+    coverage: {
+      provider: 'v8',
+      include: ['src/**/*.ts'],
+      // bootstrap and wiring files have no logic to test
+      exclude: [
+        'src/main.ts',
+        'src/**/*.module.ts',
+        'src/database/**',
+        'src/**/*.spec.ts',
+      ],
+      reporter: ['text', 'html'],
+    },
   },
 });

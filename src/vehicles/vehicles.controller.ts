@@ -63,6 +63,16 @@ export class VehiclesController {
   }
 
   @ApiOperation({
+    summary: 'Maintenance history of a vehicle: COMPLETED ones (ADMIN)',
+  })
+  @ApiNotFoundResponse({ description: 'Vehicle not found' })
+  @Roles(Role.ADMIN)
+  @Get(':id/history')
+  findHistory(@Param('id', ParseIntPipe) id: number) {
+    return this.vehicles.findHistory(id);
+  }
+
+  @ApiOperation({
     summary: 'Update a vehicle (ADMIN)',
     description:
       'IN_MAINTENANCE cannot be set by hand: only the maintenance flow sets it.',

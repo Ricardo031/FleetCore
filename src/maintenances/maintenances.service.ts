@@ -5,7 +5,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { DataSource, In, LessThan, MoreThan } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import { DataSource, In, LessThan, MoreThan, Repository } from 'typeorm';
 import { Maintenance } from './entities/maintenaces.entity.js';
 import { Vehicle } from '../vehicles/entities/vehicle.entity.js';
 import { Mechanic } from '../mechanics/entities/mechanics.entity.js';
@@ -26,9 +27,90 @@ import { UpdateMaintenanceStatusDto } from './dto/update-maintenance-status.dto.
 import { JwtPayload } from '../common/interface/jwt-payload.interface.js';
 import { Role } from '../common/enums/role.enums.js';
 
+// Relations shown in every listing: what, who and where
+const LIST_RELATIONS = { vehicle: true, mechanic: true, workshop: true };
+
 @Injectable()
 export class MaintenancesService {
-  constructor(private readonly dataSource: DataSource) {}
+  constructor(
+    private readonly dataSource: DataSource,
+    @InjectRepository(Maintenance)
+    private readonly repo: Repository<Maintenance>,
+  ) {}
+
+  findAll() {
+    return this.repo.find({
+      relations: LIST_RELATIONS,
+      order: { scheduledAt: 'DESC' },
+    });
+  }
+
+  findActive() {
+    return this.repo.find({
+      where: { status: In(ACTIVE_MAINTENANCE_STATUSES) },
+      relations: LIST_RELATIONS,
+      order: { scheduledAt: 'ASC' },
+    });
+  }
+
+  async findByVehicle(vehicleId: number) {
+    const exists = await this.dataSource
+      .getRepository(Vehicle)
+      .exists({ where: { id: vehicleId } });
+    if (!exists) throw new NotFoundException(`Vehicle ${vehicleId} not found`);
+
+    return this.repo.find({
+      where: { vehicle: { id: vehicleId } },
+      relations: LIST_RELATIONS,
+      order: { scheduledAt: 'DESC' },
+    });
+  }
+
+  async findByMechanic(mechanicId: number) {
+    const exists = await this.dataSource
+      .getRepository(Mechanic)
+      .exists({ where: { id: mechanicId } });
+    if (!exists)
+      throw new NotFoundException(`Mechanic ${mechanicId} not found`);
+
+    return this.repo.find({
+      where: { mechanic: { id: mechanicId } },
+      relations: LIST_RELATIONS,
+      order: { scheduledAt: 'DESC' },
+    });
+  }
+
+  // Maintenances of the mechanic linked to the logged-in TECHNICIAN, with the workshop where to go
+  async findMine(user: JwtPayload) {
+    const mechanic = await this.dataSource
+      .getRepository(Mechanic)
+      .findOne({ where: { user: { id: user.sub } } });
+    if (!mechanic)
+      throw new NotFoundException('Your user is not linked to any mechanic');
+
+    return this.repo.find({
+      where: { mechanic: { id: mechanic.id } },
+      relations: { vehicle: true, workshop: true },
+      order: { scheduledAt: 'ASC' },
+    });
+  }
+
+  async findOne(id: number, user: JwtPayload) {
+    const maintenance = await this.repo.findOne({
+      where: { id },
+      relations: { vehicle: true, mechanic: { user: true }, workshop: true },
+    });
+    if (!maintenance)
+      throw new NotFoundException(`Maintenance ${id} not found`);
+
+    if (
+      user.role === Role.TECHNICIAN &&
+      maintenance.mechanic.user?.id !== user.sub
+    )
+      throw new ForbiddenException('Maintenance not assigned to you');
+
+    return maintenance;
+  }
 
   async create(dto: CreateMaintenanceDto) {
     // TRANSACTION: every check and the insert run together; if any rule fails nothing is saved
